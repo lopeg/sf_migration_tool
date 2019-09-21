@@ -1,0 +1,44 @@
+<project name="Retrieve and Deploy SFDC metadata" default="deployEmptyCheckOnly" basedir=".." xmlns:sf="antlib:com.salesforce">
+	<taskdef uri="antlib:com.salesforce"
+	resource="com/salesforce/antlib.xml"
+	classpath="${basedir}/../migration_tool/lib/ant-salesforce.jar"/>
+
+	<property file="${basedir}/../migration_tool/build/build.properties"/>
+	<property environment="env"/>
+
+	<target name="getCode">
+		<echo level="info">Retrieving the server's version of code</echo>
+		<sf:retrieve
+			retrieveTarget="${basedir}/../src"
+			username="${sfdc.username}"
+			password="${sfdc.password}"
+			serverurl="${sfdc.serverurl}"
+			unpackaged="src/package.xml"/>
+	</target>
+
+	<target name="deployCode">
+		<echo level="info">Performing the deploy</echo>
+		<sf:deploy
+			username="${sfdc.username}"
+			password="${sfdc.password}"
+			serverurl="${sfdc.serverurl}"
+			deployRoot="${basedir}/../src"
+			pollWaitMillis="${sfdc.pollWaitMillis}"
+			maxPoll="${sfdc.maxPoll}"/>
+	</target>
+
+	<target name="deployEmptyCheckOnly">
+		<echo level="info">Testing the deploy</echo>
+		<sf:deploy
+			checkOnly="true"
+			logType="Debugonly"
+			username="${sfdc.username}"
+			password="${sfdc.password}"
+			serverurl="${sfdc.serverurl}"
+			deployRoot="${basedir}/../src"
+			pollWaitMillis="${sfdc.pollWaitMillis}"
+			maxPoll="${sfdc.maxPoll}"
+			testlevel="RunLocalTests">
+		</sf:deploy>
+	</target>
+</project>

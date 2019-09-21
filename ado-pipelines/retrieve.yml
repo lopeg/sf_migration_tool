@@ -1,0 +1,41 @@
+pool:
+  name: Azure Pipelines
+  demands: ant
+
+variables:
+  sfdc.username: '$(sfdc-username-build)'
+  sfdc.password: '$(sfdc-password-build)'
+  sfdc.server_url: '$(sfdc-serverurl-build)'
+
+steps:
+- task: petergroenewegen.PeterGroenewegen-Xpirit-Vsts-Build-InlinePowershell.Xpirit-Vsts-Build-InlinePowershell.InlinePowershell@1
+  displayName: 'Inline Powershell'
+  inputs:
+    Script: |   
+     cd $env:BUILD_SOURCESDIRECTORY
+     git checkout $env:BUILD_SOURCEBRANCHNAME
+  continueOnError: true
+
+- task: Ant@1
+  displayName: getCode
+  inputs:
+    buildFile: 'migration_tool/build/build.xml'
+    options: '-Dsfdc.username=$(sfdc.username) -Dsfdc.password=$(sfdc.password) -Dsfdc.serverurl=$(sfdc.server_url)'
+    targets: getCode
+    publishJUnitResults: false
+
+- task: petergroenewegen.PeterGroenewegen-Xpirit-Vsts-Build-InlinePowershell.Xpirit-Vsts-Build-InlinePowershell.InlinePowershell@1
+  displayName: 'Inline Powershell'
+  inputs:
+    Script: |
+     cd $env:BUILD_SOURCESDIRECTORY
+     $sourceBranch="origin/$env:BUILD_SOURCEBRANCH`:refs/heads/="
+     git config --global user.email "svc_account@contoso.com"
+     git config --global user.name "svc_account"
+     git add -A
+     git commit -m "retrieve"
+     $authData = "Personal%20Access%20Token:" + "$(System.AccessToken)"
+     $r = [regex]$env:BUILD_REPOSITORY_URI.Split("@")[0].Split("//")[-1]
+     $gitURLwithToken = $r.Replace($env:BUILD_REPOSITORY_URI,$authData,1)
+     git push $gitURLwithToken $env:BUILD_SOURCEBRANCHNAME
+  continueOnError: true

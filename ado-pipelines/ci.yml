@@ -1,0 +1,50 @@
+pool:
+  name: Azure Pipelines
+  demands: java
+
+variables:
+  test-result-codecoverage-file: ''
+
+steps:
+- task: SonarSource.sonarcloud.14d9cde6-c1da-4d55-aa01-2965cd301255.SonarCloudPrepare@1
+  displayName: 'Prepare analysis on SonarCloud'
+  inputs:
+    SonarCloud: sonarcloud
+    organization: test
+    scannerMode: CLI
+    configMode: manual
+    cliProjectKey: 'SFTest'
+    cliProjectName: 'SFTest
+    cliProjectVersion: '$(Build.BuildId)'
+    cliSources: src/classes
+    extraProperties: |
+     # Additional properties that will be passed to the scanner, 
+     # Put one key=value per line, example: 
+     sonar.exclusions=**/*.xml, **/*__*.cls, **/*Test*.cls, **/*test*.cls
+
+- task: SonarSource.sonarcloud.ce096e50-6155-4de8-8800-4221aaeed4a1.SonarCloudAnalyze@1
+  displayName: 'Run Code Analysis'
+
+- task: SonarSource.sonarcloud.38b27399-a642-40af-bb7d-9971f69712e8.SonarCloudPublish@1
+  displayName: 'Publish Quality Gate Result'
+  continueOnError: true
+
+- task: SimondeLang.sonarcloud-buildbreaker.sonar-buildbreaker.sonarcloud-buildbreaker@1
+  displayName: 'Break build on quality gate failure'
+  inputs:
+    SonarCloud: sonarcloud
+  enabled: false
+
+- task: CopyFiles@2
+  displayName: 'Copy SF artifacts'
+  inputs:
+    SourceFolder: '$(Build.SourcesDirectory)'
+    Contents: |
+     **\migration_tool\**
+     **\src\**
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish SF Artifacts'
+  inputs:
+    ArtifactName: 'drop'
